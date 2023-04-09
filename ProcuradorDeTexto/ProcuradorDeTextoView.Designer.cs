@@ -31,7 +31,7 @@
             dgvArquivosEncontrados = new DataGridView();
             Linha = new DataGridViewTextBoxColumn();
             Diretorio = new DataGridViewTextBoxColumn();
-            lblArquivosEncontrados = new Label();
+            lblLinhasEncontrados = new Label();
             btnProcurar = new Button();
             tbCaminho = new TextBox();
             tbExtensao = new TextBox();
@@ -50,6 +50,7 @@
             lblArquivosEmUso = new Label();
             lblArquivosEmUsoNumero = new Label();
             cbIgnoreCase = new CheckBox();
+            lblAjuda = new LinkLabel();
             ((System.ComponentModel.ISupportInitialize)dgvArquivosEncontrados).BeginInit();
             tcResultados.SuspendLayout();
             tpArquivosEncontrados.SuspendLayout();
@@ -72,6 +73,7 @@
             dgvArquivosEncontrados.RowTemplate.Height = 25;
             dgvArquivosEncontrados.Size = new Size(558, 178);
             dgvArquivosEncontrados.TabIndex = 15;
+            dgvArquivosEncontrados.CellMouseDoubleClick += dgvArquivosEncontrados_CellMouseClick;
             // 
             // Linha
             // 
@@ -92,14 +94,14 @@
             Diretorio.Resizable = DataGridViewTriState.False;
             Diretorio.Width = 494;
             // 
-            // lblArquivosEncontrados
+            // lblLinhasEncontrados
             // 
-            lblArquivosEncontrados.AutoSize = true;
-            lblArquivosEncontrados.Location = new Point(178, 115);
-            lblArquivosEncontrados.Name = "lblArquivosEncontrados";
-            lblArquivosEncontrados.Size = new Size(126, 15);
-            lblArquivosEncontrados.TabIndex = 14;
-            lblArquivosEncontrados.Text = "Arquivos encontrados:";
+            lblLinhasEncontrados.AutoSize = true;
+            lblLinhasEncontrados.Location = new Point(178, 115);
+            lblLinhasEncontrados.Name = "lblLinhasEncontrados";
+            lblLinhasEncontrados.Size = new Size(113, 15);
+            lblLinhasEncontrados.TabIndex = 14;
+            lblLinhasEncontrados.Text = "Linhas encontrados:";
             // 
             // btnProcurar
             // 
@@ -118,7 +120,7 @@
             tbCaminho.Name = "tbCaminho";
             tbCaminho.Size = new Size(557, 23);
             tbCaminho.TabIndex = 12;
-            tbCaminho.Text = "C:\\Folder";
+            tbCaminho.Text = "C:\\Users\\user\\Desktop              ";
             tbCaminho.Enter += textBox_Enter;
             tbCaminho.Leave += textBox_Leave;
             // 
@@ -129,7 +131,7 @@
             tbExtensao.Name = "tbExtensao";
             tbExtensao.Size = new Size(221, 23);
             tbExtensao.TabIndex = 11;
-            tbExtensao.Text = "json";
+            tbExtensao.Text = "json                     ";
             tbExtensao.Enter += textBox_Enter;
             tbExtensao.Leave += textBox_Leave;
             // 
@@ -149,7 +151,7 @@
             tbTexto.Name = "tbTexto";
             tbTexto.Size = new Size(330, 23);
             tbTexto.TabIndex = 20;
-            tbTexto.Text = "Text to search";
+            tbTexto.Text = "Text to search                 ";
             tbTexto.Enter += textBox_Enter;
             tbTexto.Leave += textBox_Leave;
             // 
@@ -184,7 +186,7 @@
             // lblArquivosEncontradosNumero
             // 
             lblArquivosEncontradosNumero.AutoSize = true;
-            lblArquivosEncontradosNumero.Location = new Point(301, 115);
+            lblArquivosEncontradosNumero.Location = new Point(288, 115);
             lblArquivosEncontradosNumero.Name = "lblArquivosEncontradosNumero";
             lblArquivosEncontradosNumero.Size = new Size(13, 15);
             lblArquivosEncontradosNumero.TabIndex = 16;
@@ -247,6 +249,7 @@
             dgvArquivosEmUso.RowTemplate.Height = 25;
             dgvArquivosEmUso.Size = new Size(558, 178);
             dgvArquivosEmUso.TabIndex = 16;
+            dgvArquivosEmUso.CellDoubleClick += dgvArquivosEmUso_CellDoubleClick;
             // 
             // dataGridViewTextBoxColumn2
             // 
@@ -286,16 +289,28 @@
             cbIgnoreCase.Text = "Ignore case";
             cbIgnoreCase.UseVisualStyleBackColor = true;
             // 
+            // lblAjuda
+            // 
+            lblAjuda.AutoSize = true;
+            lblAjuda.Location = new Point(555, 166);
+            lblAjuda.Name = "lblAjuda";
+            lblAjuda.Size = new Size(18, 15);
+            lblAjuda.TabIndex = 28;
+            lblAjuda.TabStop = true;
+            lblAjuda.Text = " ? ";
+            lblAjuda.LinkClicked += lblAjuda_LinkClicked;
+            // 
             // ProcuradorDeTextoView
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
+            Controls.Add(lblAjuda);
             Controls.Add(cbIgnoreCase);
             Controls.Add(lblArquivosEmUsoNumero);
             Controls.Add(lblArquivosEmUso);
             Controls.Add(tcResultados);
             Controls.Add(button1);
-            Controls.Add(lblArquivosEncontrados);
+            Controls.Add(lblLinhasEncontrados);
             Controls.Add(btnProcurar);
             Controls.Add(tbCaminho);
             Controls.Add(tbExtensao);
@@ -306,7 +321,7 @@
             Controls.Add(progressBar1);
             Controls.Add(lblArquivosEncontradosNumero);
             Name = "ProcuradorDeTextoView";
-            Size = new Size(596, 382);
+            Size = new Size(992, 609);
             Click += ProcuradorDeTextoView_Click;
             ((System.ComponentModel.ISupportInitialize)dgvArquivosEncontrados).EndInit();
             tcResultados.ResumeLayout(false);
@@ -320,7 +335,7 @@
         #endregion
 
         private DataGridView dgvArquivosEncontrados;
-        private Label lblArquivosEncontrados;
+        private Label lblLinhasEncontrados;
         private Button btnProcurar;
         private TextBox tbCaminho;
         private TextBox tbExtensao;
@@ -341,5 +356,6 @@
         private Label lblArquivosEmUso;
         private Label lblArquivosEmUsoNumero;
         private CheckBox cbIgnoreCase;
+        private LinkLabel lblAjuda;
     }
 }

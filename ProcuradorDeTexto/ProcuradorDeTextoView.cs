@@ -1,5 +1,9 @@
 ﻿using System.Collections.Concurrent;
+using System.Diagnostics;
+using System.Diagnostics.Eventing.Reader;
+using System.Windows.Forms;
 using System.Xml.Linq;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace ProcuradorDeTexto
 {
@@ -15,9 +19,9 @@ namespace ProcuradorDeTexto
         {
             InitializeComponent();
 
-            exemplos.Add("tbTexto, " + tbTexto.Text);
-            exemplos.Add("tbCaminho, " + tbCaminho.Text);
-            exemplos.Add("tbExtensao, " + tbExtensao.Text);
+            exemplos.Add("tbTexto," + tbTexto.Text);
+            exemplos.Add("tbCaminho," + tbCaminho.Text);
+            exemplos.Add("tbExtensao," + tbExtensao.Text);
 
             tbExtensao.TabStop = false;
             tbCaminho.TabStop = false;
@@ -26,8 +30,8 @@ namespace ProcuradorDeTexto
 
         private async void btnProcurar_Click(object sender, EventArgs e)
         {
-            btnProcurar.Enabled = false;
 
+            btnProcurar.Enabled = false;
             lblArquivosEmUsoNumero.Text = "0";
             lblArquivosEncontradosNumero.Text = "0";
 
@@ -35,13 +39,9 @@ namespace ProcuradorDeTexto
             dgvArquivosEmUso.Rows.Clear();
             progressBar1.MarqueeAnimationSpeed = 35;
 
-            string caminho = tbCaminho.Text;
-            string extensao = tbExtensao.Text;
-            string textoParaProcurar = tbTexto.Text;
-
             await Task.Run(() =>
             {
-                sucesso = Procurar(caminho, extensao, textoParaProcurar);
+                sucesso = Procurar();
             });
 
             dgvArquivosEncontrados.Rows.AddRange(arquivosEncontrados.ToArray());
@@ -71,10 +71,13 @@ namespace ProcuradorDeTexto
             }
         }
 
-        private bool Procurar(string caminho, string extensao, string textoParaProcurar)
+        private bool Procurar()
         {
             int quantidadeArquivosEncontrados = 0;
             int quantidadeArquivosEmUso = 0;
+            string caminho = tbCaminho.Text;
+            string extensao = tbExtensao.Text;
+            string textoParaProcurar = tbTexto.Text;
             try
             {
                 string[] arquivos = Directory.GetFiles(caminho, "*." + extensao, SearchOption.AllDirectories);
@@ -96,10 +99,8 @@ namespace ProcuradorDeTexto
                                     DataGridViewRow novaLinha = new DataGridViewRow();
                                     novaLinha.CreateCells(dgvArquivosEncontrados, i + 1, arquivo);
                                     arquivosEncontrados.Add(novaLinha);
-                                    lblArquivosEncontradosNumero.Invoke(new MethodInvoker(() =>
-                                    {
-                                        lblArquivosEncontradosNumero.Text = (quantidadeArquivosEncontrados + 1).ToString();
-                                    }));
+                                    quantidadeArquivosEncontrados++;
+                                    lblArquivosEncontradosNumero.Text = quantidadeArquivosEncontrados.ToString();
                                 }
                             }
                             else
@@ -111,10 +112,8 @@ namespace ProcuradorDeTexto
                                     DataGridViewRow novaLinha = new DataGridViewRow();
                                     novaLinha.CreateCells(dgvArquivosEncontrados, i + 1, arquivo);
                                     arquivosEncontrados.Add(novaLinha);
-                                    lblArquivosEncontradosNumero.Invoke(new MethodInvoker(() =>
-                                    {
-                                        lblArquivosEncontradosNumero.Text = (quantidadeArquivosEncontrados + 1).ToString();
-                                    }));
+                                    quantidadeArquivosEncontrados++;
+                                    lblArquivosEncontradosNumero.Text = quantidadeArquivosEncontrados.ToString();
                                 }
                             }
                         }
@@ -124,21 +123,13 @@ namespace ProcuradorDeTexto
                         DataGridViewRow novaLinha = new DataGridViewRow();
                         novaLinha.CreateCells(dgvArquivosEmUso, arquivo);
                         arquivosEmUso.Add(novaLinha);
-                        lblArquivosEncontradosNumero.Invoke(new MethodInvoker(() =>
-                        {
-                            lblArquivosEmUsoNumero.Text = (quantidadeArquivosEmUso + 1).ToString();
-                        }));
+                        quantidadeArquivosEmUso++;
+                        lblArquivosEmUsoNumero.Text = quantidadeArquivosEmUso.ToString();
                     }
                 });
             }
             catch (System.IO.DirectoryNotFoundException ex)
             {
-
-                if (exemplos.Any(s => s.Contains(tbCaminho.Text)))
-                {
-                    MessageBox.Show("Você deve inserir um diretorio");
-                    return false;
-                }
                 MessageBox.Show($"Diretorio não encontrado: \"{tbCaminho.Text}\"");
                 return false;
             }
@@ -151,18 +142,27 @@ namespace ProcuradorDeTexto
 
         private void ProcuradorDeTextoView_Click(object sender, EventArgs e)
         {
-
+            lblAjuda.Focus();
         }
 
         private void textBox_Enter(object sender, EventArgs e)
         {
             TextBox textBox = sender as TextBox;
+            List<string> exemplos3 = new List<string>();
             if (textBox != null)
             {
-                if (exemplos.Any(s => s.Contains(textBox.Text)))
+                foreach (string linha in exemplos)
                 {
-                    textBox.Text = ""; // Remove o texto de exemplo
-                    textBox.ForeColor = SystemColors.WindowText; // Define a cor padrão do texto
+                    string[] exemplos2 = linha.Split(new string[] { "," }, StringSplitOptions.None);
+                    foreach (string exemplo in exemplos2)
+                    {
+                        exemplos3.Add(exemplo);
+                    }
+                }
+                if (exemplos3.Contains(textBox.Text))
+                {
+                    textBox.Text = "";
+                    textBox.ForeColor = SystemColors.WindowText;
                 }
             }
         }
@@ -173,10 +173,10 @@ namespace ProcuradorDeTexto
             TextBox textBox = sender as TextBox;
             if (textBox != null)
             {
-                if (textBox.Text == "") // Verifica se a caixa de texto está vazia
+                if (textBox.Text == "")
                 {
                     string teste = exemplos.FirstOrDefault(palavra => palavra.Contains(name));
-                    int posicao = teste.IndexOf(", ");
+                    int posicao = teste.IndexOf(",");
                     string textoparaexibir = teste.Substring(posicao + 1);
                     textBox.Text = textoparaexibir; // Define o texto de exemplo novamente
                     textBox.ForeColor = SystemColors.GrayText; // Define a cor do texto de exemplo
@@ -196,6 +196,39 @@ namespace ProcuradorDeTexto
                 string pastaSelecionada = folderBrowserDialog.SelectedPath;
                 tbCaminho.Text = pastaSelecionada;
                 tbCaminho.ForeColor = SystemColors.WindowText;
+            }
+        }
+
+        private void dgvArquivosEncontrados_CellMouseClick(object sender, DataGridViewCellMouseEventArgs e)
+        {
+            if (e.RowIndex >= 0 && e.ColumnIndex >= 0)
+            {
+                string filePath = dgvArquivosEncontrados.Rows[e.RowIndex].Cells[e.ColumnIndex].Value.ToString();
+
+                if (File.Exists(filePath))
+                {
+                    string argument = "/select, \"" + filePath + "\"";
+                    Process.Start("explorer.exe", argument);
+                }
+            }
+        }
+
+        private void lblAjuda_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
+        {
+            MessageBox.Show("Clique duas vezes no diretório para abrir a pasta do arquivo", "Informações");
+        }
+
+        private void dgvArquivosEmUso_CellDoubleClick(object sender, DataGridViewCellEventArgs e)
+        {
+            if (e.RowIndex >= 0 && e.ColumnIndex >= 0)
+            {
+                string filePath = dgvArquivosEmUso.Rows[e.RowIndex].Cells[e.ColumnIndex].Value.ToString();
+
+                if (File.Exists(filePath))
+                {
+                    string argument = "/select, \"" + filePath + "\"";
+                    Process.Start("explorer.exe", argument);
+                }
             }
         }
     }
