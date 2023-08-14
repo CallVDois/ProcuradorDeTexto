@@ -1,19 +1,17 @@
 ﻿using System.Collections.Concurrent;
 using System.Diagnostics;
-using System.Diagnostics.Eventing.Reader;
-using System.Windows.Forms;
-using System.Xml.Linq;
-using static System.Net.Mime.MediaTypeNames;
+using System.Reflection;
+using System.Threading;
+using ProcuradorDeTexto.utils;
 
 namespace ProcuradorDeTexto
 {
     public partial class ProcuradorDeTextoView : UserControl
     {
 
-        bool sucesso;
         List<string> exemplos = new List<string>();
-        ConcurrentBag<DataGridViewRow> arquivosEncontrados = new ConcurrentBag<DataGridViewRow>();
-        ConcurrentBag<DataGridViewRow> arquivosEmUso = new ConcurrentBag<DataGridViewRow>();
+        ConcurrentBag<String[]> arquivosEncontrados = new ConcurrentBag<String[]>();
+        ConcurrentBag<String[]> arquivosEmUso = new ConcurrentBag<String[]>();
 
         public ProcuradorDeTextoView()
         {
@@ -30,103 +28,102 @@ namespace ProcuradorDeTexto
 
         private async void btnProcurar_Click(object sender, EventArgs e)
         {
-
-            btnProcurar.Enabled = false;
-            lblArquivosEmUsoNumero.Text = "0";
-            lblArquivosEncontradosNumero.Text = "0";
+            bool sucesso = false;
 
             dgvArquivosEncontrados.Rows.Clear();
             dgvArquivosEmUso.Rows.Clear();
-            progressBar1.MarqueeAnimationSpeed = 35;
+            ButtonUtils.UpdateButton(btnProcurar);
+            LabelUtils.UpdateLabelString(lblArquivosEncontradosNumero, "0");
+            LabelUtils.UpdateLabelString(lblArquivosEmUsoNumero, "0");
+            ProgressBarUtils.UpdateProgressBar(progressBar1);
 
             await Task.Run(() =>
             {
                 sucesso = Procurar();
             });
 
-            dgvArquivosEncontrados.Rows.AddRange(arquivosEncontrados.ToArray());
-            dgvArquivosEmUso.Rows.AddRange(arquivosEmUso.ToArray());
+            arquivosEncontrados.ToList()
+                .AsParallel()
+                .ForAll(arquivo =>
+                {
 
-            arquivosEncontrados.Clear();
+                    dgvArquivosEncontrados.BeginInvoke(() =>
+                    {
+                        this.dgvArquivosEncontrados.Rows.Add(arquivo);
+                    });
 
-            progressBar1.MarqueeAnimationSpeed = 0;
-            progressBar1.Style = ProgressBarStyle.Blocks;
-            progressBar1.Style = ProgressBarStyle.Marquee;
 
-            btnProcurar.Enabled = true;
+                });
 
-            if (sucesso && lblArquivosEncontradosNumero.Equals("0"))
+            arquivosEmUso.ToList()
+                .AsParallel()
+                .ForAll(arquivo =>
+                {
+                    dgvArquivosEmUso.BeginInvoke(() =>
+                    {
+                        this.dgvArquivosEmUso.Rows.Add(arquivo);
+                    });
+                });
+
+            LabelUtils.UpdateLabelConcurrentBag(lblArquivosEncontradosNumero, arquivosEncontrados);
+            LabelUtils.UpdateLabelConcurrentBag(lblArquivosEmUsoNumero, arquivosEmUso);
+            ProgressBarUtils.UpdateProgressBar(progressBar1);
+            ButtonUtils.UpdateButton(btnProcurar);
+
+            if (sucesso && arquivosEncontrados.Count == 0 && arquivosEmUso.Count == 0)
             {
                 MessageBox.Show("Nada foi encontrado.");
             }
 
-            if (dgvArquivosEmUso.Rows.Count > 1)
+            if (arquivosEmUso.Count > 0)
             {
                 MessageBox.Show("Alguns arquivos estavam em uso e não puderam ser verificados.");
             }
 
-            if (sucesso && dgvArquivosEmUso.Rows.Count == 0 && dgvArquivosEncontrados.Rows.Count == 0)
-            {
-                MessageBox.Show("Nada foi encontrado.");
-            }
+            arquivosEncontrados.Clear();
+            arquivosEmUso.Clear();
         }
 
         private bool Procurar()
         {
-            int quantidadeArquivosEncontrados = 0;
-            int quantidadeArquivosEmUso = 0;
             string caminho = tbCaminho.Text;
             string extensao = tbExtensao.Text;
             string textoParaProcurar = tbTexto.Text;
+
             try
             {
-                string[] arquivos = Directory.GetFiles(caminho, "*." + extensao, SearchOption.AllDirectories);
-
-                Parallel.ForEach(arquivos, arquivo =>
-                {
-                    try
+                Directory.GetFiles(caminho, "*." + extensao, SearchOption.AllDirectories)
+                    .ToList()
+                    .ForEach(arquivo =>
                     {
-                        string[] linhas = File.ReadAllLines(arquivo);
-
-                        for (int i = 0; i < linhas.Length; i++)
+                        int i = 0;
+                        try
                         {
-                            if (cbIgnoreCase.Checked)
-                            {
-                                if (linhas[i].ToLower().Contains(textoParaProcurar.ToLower()))
+                            File.ReadAllLines(arquivo)
+                                .ToList()
+                                .ForEach(linha =>
                                 {
-                                    FileInfo fileInfo = new FileInfo(arquivo);
-
-                                    DataGridViewRow novaLinha = new DataGridViewRow();
-                                    novaLinha.CreateCells(dgvArquivosEncontrados, i + 1, arquivo);
-                                    arquivosEncontrados.Add(novaLinha);
-                                    quantidadeArquivosEncontrados++;
-                                    lblArquivosEncontradosNumero.Text = quantidadeArquivosEncontrados.ToString();
-                                }
-                            }
-                            else
-                            {
-                                if (linhas[i].Contains(textoParaProcurar))
-                                {
-                                    FileInfo fileInfo = new FileInfo(arquivo);
-
-                                    DataGridViewRow novaLinha = new DataGridViewRow();
-                                    novaLinha.CreateCells(dgvArquivosEncontrados, i + 1, arquivo);
-                                    arquivosEncontrados.Add(novaLinha);
-                                    quantidadeArquivosEncontrados++;
-                                    lblArquivosEncontradosNumero.Text = quantidadeArquivosEncontrados.ToString();
-                                }
-                            }
+                                    i++;
+                                    bool contem;
+                                    if (cbIgnoreCase.Checked)
+                                    {
+                                        contem = linha.ContainsIgnoreCase(textoParaProcurar);
+                                    }
+                                    else
+                                    {
+                                        contem = linha.Contains(textoParaProcurar);
+                                    }
+                                    if (contem)
+                                    {
+                                        arquivosEncontrados.Add(new string[] { i.ToString(), arquivo });
+                                    }
+                                });
                         }
-                    }
-                    catch (System.IO.IOException ex)
-                    {
-                        DataGridViewRow novaLinha = new DataGridViewRow();
-                        novaLinha.CreateCells(dgvArquivosEmUso, arquivo);
-                        arquivosEmUso.Add(novaLinha);
-                        quantidadeArquivosEmUso++;
-                        lblArquivosEmUsoNumero.Text = quantidadeArquivosEmUso.ToString();
-                    }
-                });
+                        catch (System.IO.IOException ex)
+                        {
+                            arquivosEmUso.Add(new string[] { arquivo });
+                        }
+                    });
             }
             catch (System.IO.DirectoryNotFoundException ex)
             {
@@ -169,8 +166,8 @@ namespace ProcuradorDeTexto
 
         private void textBox_Leave(object sender, EventArgs e)
         {
-            string name = ((TextBox)sender).Name;
             TextBox textBox = sender as TextBox;
+            string name = textBox.Name;
             if (textBox != null)
             {
                 if (textBox.Text == "")
